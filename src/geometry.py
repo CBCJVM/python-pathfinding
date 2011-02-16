@@ -5,18 +5,38 @@ class Line(object):
     """The name of this class can be misleading. It represents a line segment.
     Line objects are represented by two Node object"""
     
-    def __init__(self, node_a, node_b):
+    def __init__(self, node_a=None, node_b=None, slope=None, distance=None):
         """Constructs a Line from ``node_a`` extending to ``node_b``. As a
         shorthand, each node in the constructor can be written as a tuple, and
-        will simply be converted to Nodes upon construction."""
+        will simply be converted to Nodes upon construction. The slope and
+        distance arguments can be used if only one node is known. With a
+        positive distance, the unknown node is defined as to the right. With a
+        negative distance, the unknown node is defined as to the left of the
+        known node. If slope is infinite, the unknown point is defined as above,
+        if the slope is negative infinity, the unknown point is defined as
+        below. Negative distance reverses this behavior"""
         super(Line, self).__init__()
         if isinstance(node_a, tuple):
             node_a = node.Node(*node_a)
         if isinstance(node_b, tuple):
             node_b = node.Node(*node_b)
+        if node_a is None and node_b is None:
+            raise Exception("At least one node must be defined")
+       	if node_a is None:
+       	    node_a = self.__get_other_node(node_b, slope, distance)
+       	if node_b is None:
+       	    node_b = self.__get_other_node(node_a, slope, distance)
         self.node_a, self.node_b = node_a, node_b
         self.midpoint = node.Node((node_a.x + node_b.x)*.5,
                                   (node_a.y + node_b.y)*.5)
+    
+    def __get_other_node(self, n, slope, distance):
+        # alternatively...
+        # x = d/sqrt(m*m+1)
+        # y = dm/sqrt(m*m+1)
+        ang = math.atan(slope)
+        return node.Node(n.x + distance * math.cos(ang),
+                         n.y + distance * math.sin(ang))
     
     def get_length(self):
         return self.node_a.dist(self.node_b)
@@ -37,6 +57,24 @@ class Line(object):
     delta_y = property(get_delta_y,
                        doc="""The vertical distance, or the change in ``y`` from
                        ``node_a`` to ``node_b``""")
+    
+    def get_slope(self):
+        if abs(self.delta_x) < 1e-7:
+            if self.delta_y > 0:
+                return float("inf")
+            return float("-inf")
+        return self.delta_y / self.delta_x
+    
+    slope = property(get_slope)
+    
+    def get_perpendicular_slope(self):
+        if abs(self.delta_y) < 1e-7:
+            if self.delta_x > 0:
+                return float("-inf")
+            return float("inf")
+        return self.delta_x / self.delta_y
+    
+    perpendicular_slope = property(get_perpendicular_slope)
     
     def does_intersect(self, other, vertexes_count=True):
         """Uses the algorithm defined here:
@@ -231,6 +269,11 @@ class Polygon(BasePolygon):
         for t in self.triangles:
             self.triangle_lines.update(t.lines)
         self.triangle_lines.difference_update(self.lines)
+        e = Exception("Polygon is self-intersecting")
+        for i in self.lines:
+            for k in self.lines:
+                if i.does_intersect(k, False):
+                    raise e
     
     def does_intersect_line(self, line):
         if line in self.triangle_lines: return True
@@ -240,3 +283,50 @@ class Polygon(BasePolygon):
     
     def __repr__(self):
         return "Polygon" + str(self)
+    
+    def get_expanded(self, outset):
+        n = self.nodes if self.is_ccw else list(reversed(self.nodes))
+        inf = float("inf")
+        # neg_zero = float("-0")
+        point_slopes = []
+        for i in xrange(len(n)):
+            l = Line(n[i], n[(i + 1) % len(n)])
+            s = l.slope
+            p_s = l.perpendicular_slope
+            # Perpendicular Line
+            # Solve for quads, we deal with y on line because that corresponds
+            # with the sign of x on the perp
+            p_l = Line(node_a=l.midpoint, slope=p_s,
+                       distance=(outset if l.delta_y < 0 else -outset))
+            n_b = p_l.node_b
+            point_slopes.append((n_b, s))
+        # convert point_slopes to a series of points
+        nodes = []
+        for i in xrange(len(point_slopes)):
+            nodes.append(self.__find_interesection_point(
+                             *(point_slopes[i] +
+                               point_slopes[(i + 1) % len(point_slopes)])))
+        return Polygon(*nodes, ccw=True)
+        
+    def __find_interesection_point(self, pa, sa, pb, sb):
+        """point in line a, slope of line a, point in line b, slope of line b"""
+        inf = float("inf")
+        if abs(sa) == inf and abs(sb) == inf or sa == sb:
+            raise Exception("Parallel Lines")
+        if abs(sa) == inf:
+            return self.__find_interesection_point_inf(pa, pb, sb)
+        if abs(sb) == inf:
+            return self.__find_interesection_point_inf(pb, pa, sa)
+        ba = pa.y - pa.x * sa
+        bb = pb.y - pb.x * sb
+        x = (bb - ba) / (sa - sb)
+        return node.Node(x, sa * x + ba)
+    
+    def __find_interesection_point_inf(self, pa, pb, sb):
+        return node.Node(pa.x, (pa.x - pb.x) * sb + pb.y)
+    
+    def get_nearest_outter_node(self, start):
+        if not self.contains_node_in_area(start):
+            return start
+        for l in self.lines:
+            pass

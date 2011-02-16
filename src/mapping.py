@@ -36,6 +36,15 @@ class Board(object):
             lines.update(i.lines)
         return lines
     
+    def get_expanded(self, outset):
+        b = Board()
+        for p in self.polygons:
+            b.add(p.get_expanded(outset))
+        return b
+    
+    def __str__(self):
+        return str(self.polygons)[4:-1]
+    
     lines = property(get_lines,
                      doc="A set of every ``Polygon``'s lines on this ``Board``")
     

@@ -33,7 +33,7 @@ s_end = Node(3.5, 0)
 #       |________|
 # (0, 1)          (1, 1)
 r_board = mapping.Board()
-r_board.add(geometry.Polygon((0, 0), (1, 0), (1, 1), (0, 1)))
+r_board.add(geometry.Polygon((0, 0), (1, 0), (1, 1), (0, 1), ccw=False))
 r_start = Node(0, 0)
 r_end = Node(1, 1)
 
@@ -48,6 +48,13 @@ class TestTriangulation(unittest.TestCase):
     def test_s_curve_triangulation(self):
         print(s_left_side.triangles)
         print(s_right_side.triangles)
+
+class TestExpansion(unittest.TestCase):
+    def test_r_expansion(self):
+        print("Expanded r: " + str(r_board.get_expanded(.25)))
+    
+    def test_s_expansion(self):
+        print("Expanded s: " + str(s_board.get_expanded(.25)))
 
 class TestLineOfSight(unittest.TestCase):
     def test_s_curve_is_visible(self):
