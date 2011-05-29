@@ -72,7 +72,7 @@ class Line(object):
             if self.delta_x > 0:
                 return float("-inf")
             return float("inf")
-        return self.delta_x / self.delta_y
+        return -self.delta_x / self.delta_y
     
     perpendicular_slope = property(get_perpendicular_slope)
     
