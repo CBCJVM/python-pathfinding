@@ -45,14 +45,14 @@ class Line(object):
                       doc="The distance from ``node_a`` to ``node_b``")
     
     def get_delta_x(self):
-        return self.node_a.x - self.node_b.x
+        return self.node_b.x - self.node_a.x
     
     delta_x = property(get_delta_x,
                        doc="""The horizontal distance, or the change in ``x``
                        from ``node_a`` to ``node_b``""")
     
     def get_delta_y(self):
-        return self.node_a.y - self.node_b.y
+        return self.node_b.y - self.node_a.y
     
     delta_y = property(get_delta_y,
                        doc="""The vertical distance, or the change in ``y`` from
